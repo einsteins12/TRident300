@@ -17,15 +17,16 @@
 description: Variables for sensorless homing X and Y
 
 variable_homing_current: 0.0                # The desired motor current for homing the X and Y axes. Leave as '0.0' to use run_current values instead.
-variable_backoff_distance: 40              # Distance in mm to back off from each axis after homing.
+variable_clear_time: 1                      # Time in seconds to wait for stallguard registers to clear, default is 1 second.
+variable_backoff_distance: 40               # Distance in mm to back off from each axis after homing.
 variable_z_hop_distance: 10                 # Distance to move Z away from printhead prior to homing, and after homing.
 variable_first_homed_axis: 'X'              # First axis to home when 'G28' is called. Some prefer homing Y before X.
 
 ## The following variables are used for moving the printhead to a certain part of the bed before homing the Z axis:
 
 variable_safe_z_enable: True               # Enables/disables moving the printhead before homing the Z axis.
-variable_safe_x: 145                   # Safe X position to home the Z axis, leave at -128 to home to the center of the X axis.
-variable_safe_y: 157                     # Safe Y position to home the Z axis, leave at -128 to home to the center of the Y axis.
+variable_safe_x: 145                    # Safe X position to home the Z axis, leave at -128 to home to the center of the X axis.
+variable_safe_y: 157                      # Safe Y position to home the Z axis, leave at -128 to home to the center of the Y axis.
 
 # Do not modify below
 gcode:
@@ -35,6 +36,7 @@ gcode:
 
     {% set sensorless_variables = printer["gcode_macro _Sensorless_Homing_Variables"] %}            #
     {% set homing_current = sensorless_variables.homing_current | float %}                          #
+    {% set clear_time = (sensorless_variables.clear_time * 1000) | float %}                         # Pull variables from _Sensorless_Homing_Variables
     {% set backoff_distance = sensorless_variables.backoff_distance | float %}                      #
 
     {% set homing_speed = (printer.configfile.settings['stepper_x'].homing_speed * 60) | float %}   # Pull X axis homing speed from config
@@ -49,7 +51,7 @@ gcode:
       {% endif %}                                                                                   #
     {% endif %}                                                                                     #
 
-    M400                                                                                # Wait for stallguard to clear in case Y was homed first
+    G4 P{clear_time}                                                                                # Wait for stallguard to clear in case Y was homed first
 
     G28 X                                                                                           # Home the X axis
 
@@ -95,13 +97,14 @@ gcode:
       {% endif %}
     {% endif %}                                                                                     # End of homing_current section
 
-    M400                                                                                # Wait for stallguard to clear
+    G4 P{clear_time}                                                                                # Wait for stallguard to clear
 
 [gcode_macro _HOME_Y]
 gcode:
 
     {% set sensorless_variables = printer["gcode_macro _Sensorless_Homing_Variables"] %}            #
     {% set homing_current = sensorless_variables.homing_current | float %}                          #
+    {% set clear_time = (sensorless_variables.clear_time * 1000) | float %}                         # Pull variables from _Sensorless_Homing_Variables
     {% set backoff_distance = sensorless_variables.backoff_distance | float %}                      #
 
     {% set homing_speed = (printer.configfile.settings['stepper_y'].homing_speed * 60) | float %}   # Pull Y axis homing speed from config
@@ -116,8 +119,8 @@ gcode:
       {% endif %}                                                                                   #
     {% endif %}                                                                                     #
 
-    M400                                                                                # Wait for stallguard to clear in case X was homed first
-
+    G4 P{clear_time}                                                                                # Wait for stallguard to clear in case X was homed first
+    #G1 X280 Y298
     G28 Y                                                                                           # Home the Y axis
 
     {% if backoff_distance > 0 %}                                                                   #
@@ -162,7 +165,7 @@ gcode:
       {% endif %}
     {% endif %}                                                                                     # End of homing_current section
 
-    M400                                                                                # Wait for stallguard to clear
+    G4 P{clear_time}                                                                                # Wait for stallguard to clear
 
 [homing_override]
 axes: xyz
